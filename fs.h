@@ -48,6 +48,17 @@ int  checkLayout(void);                         /* 1 if sizes are correct, else 
 void initDir(int s, int back, int frwd);        /* initialize a directory sector  */
 void initRoot(void);                            /* initialize sector[0]           */
 
+extern int curDir;                              /* first sector of current dir    */
+
+int  findEntry(int dirStart, const char *name, int *sec, int *idx);
+int  findFreeSlot(int dirStart, int *sec, int *idx);
+int  getSlot(int dirStart, int *sec, int *idx); /* extends the directory if full  */
+
+void cmdCreate(const char *typeStr, const char *name);
+void cmdDir(void);
+void cmdCd(const char *name);
+void cmdRoot(void);
+
 /* ---- freelist.c ---- */
 void buildList(void);       /* create list of sectors 1..99               */
 int  Remove(void);          /* take one free sector; -1 if none are left  */

@@ -2,18 +2,22 @@
  * main.c - Program entry point
  */
 #include <stdio.h>
+#include <string.h>
+#include <ctype.h>
 #include "fs.h"
 
-static int failures = 0;
+#define LINE_LEN 256
+#define MAX_TOKENS 4
 
-static void check(const char *what, int got, int expected)
+static void printHelp(void)
 {
-    if (got == expected) {
-        printf("  PASS  %s\n", what);
-    } else {
-        printf("  FAIL  %s (got %d, expected %d)\n", what, got, expected);
-        failures++;
-    }
+    printf("Commands:\n"
+           "  CREATE U|D name   create a file (U) or directory (D)\n"
+           "  DIR               list the current directory\n"
+           "  CD name           change to a subdirectory\n"
+           "  ROOT              return to the root directory\n"
+           "  HELP              show this list\n"
+           "  EXIT              quit\n");
 }
 
 int main(void)
@@ -23,56 +27,55 @@ int main(void)
         return 1;
     }
 
-    initRoot();
-    buildList();
+    initRoot();             /* sector[0] becomes the empty root directory */
+    buildList();            /* free sectors 1..99                         */
+    curDir = 0;             /* start in the root                          */
 
-    /* ---- Root directory checks ---- */
-    printf("Root directory\n");
-    check("root back == -1", sector[0].directory.back, -1);
-    check("root frwd == -1", sector[0].directory.frwd, -1);
-    check("root free == 25", sector[0].directory.free, 25);
+    printf("Simple File System ready (type HELP for commands)\n");
 
-    /* ---- Free-sector list checks ---- */
-    printf("Free-sector list\n");
-    check("initial free count == 99", freeCount(), 99);
+    char line[LINE_LEN];
+    for (;;) {
+        printf("fs> ");
+        fflush(stdout);
 
-    check("Remove #1 == 1", Remove(), 1);
-    check("Remove #2 == 2", Remove(), 2);
-    check("Remove #3 == 3", Remove(), 3);
-    check("free count == 96", freeCount(), 96);
+        if (!fgets(line, sizeof line, stdin)) break;        /* end of input */
 
-    check("Insert(2) accepted", Insert(2), 1);
-    check("Insert(2) again rejected (duplicate)", Insert(2), 0);
-    check("Insert(50) rejected (already free)", Insert(50), 0);
-    check("Insert(0) rejected (root)", Insert(0), 0);
-    check("Insert(100) rejected (out of range)", Insert(100), 0);
-    check("Insert(-1) rejected", Insert(-1), 0);
-    check("free count == 97", freeCount(), 97);
-    check("Remove returns lowest free (2)", Remove(), 2);
+        /* Discard the rest of an over-long line. */
+        if (!strchr(line, '\n')) {
+            int c;
+            while ((c = getchar()) != '\n' && c != EOF) { }
+        }
 
-    /* Drain the list completely and make sure no number repeats. */
-    int seen[NUM_SECTORS] = {0};
-    int dup = 0, drained = 0, s;
-    while ((s = Remove()) != -1) {
-        if (seen[s]) dup++;
-        seen[s] = 1;
-        drained++;
+        char *tok[MAX_TOKENS];
+        int nt = 0;
+        for (char *t = strtok(line, " \t\r\n"); t && nt < MAX_TOKENS;
+             t = strtok(NULL, " \t\r\n"))
+            tok[nt++] = t;
+        if (nt == 0) continue;
+
+        for (char *c = tok[0]; *c; c++)
+            *c = (char)toupper((unsigned char)*c);
+        const char *cmd = tok[0];
+
+        if (strcmp(cmd, "CREATE") == 0) {
+            if (nt < 3) printf("Usage: CREATE U|D name\n");
+            else        cmdCreate(tok[1], tok[2]);
+        } else if (strcmp(cmd, "DIR") == 0) {
+            cmdDir();
+        } else if (strcmp(cmd, "CD") == 0) {
+            if (nt < 2) printf("Usage: CD name\n");
+            else        cmdCd(tok[1]);
+        } else if (strcmp(cmd, "ROOT") == 0) {
+            cmdRoot();
+        } else if (strcmp(cmd, "HELP") == 0) {
+            printHelp();
+        } else if (strcmp(cmd, "EXIT") == 0) {
+            break;
+        } else {
+            printf("Unknown command '%s' (type HELP)\n", cmd);
+        }
     }
-    check("drained 96 sectors (4..99, plus none repeated)", drained, 96);
-    check("no duplicates while draining", dup, 0);
-    check("free count == 0", freeCount(), 0);
-    check("Remove on empty list == -1", Remove(), -1);
 
-    /* Release everything (1..99) and confirm the list is whole again. */
-    int inserted = 0;
-    for (int i = 1; i < NUM_SECTORS; i++)
-        inserted += Insert(i);
-    check("re-inserted 99 sectors", inserted, 99);
-    check("free count == 99", freeCount(), 99);
-
-    destroyList();
-    check("free count after destroyList == 0", freeCount(), 0);
-
-    printf("\n%s (%d failure%s)\n", failures ? "TESTS FAILED" : "ALL TESTS PASSED",
-           failures, failures == 1 ? "" : "s");
-    return failures ? 1 : 0;
+    destroyList();          /* release the free-list nodes */
+    return 0;
+}
