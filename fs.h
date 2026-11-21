@@ -34,6 +34,12 @@ union block {
     } data;
 };
 
+/* Node of the free-sector linked list */
+struct nodeType {
+    int info;                   /* a free sector number */
+    struct nodeType *link;
+};
+
 /* The simulated disk (defined in dir.c) */
 extern union block sector[100];
 
@@ -41,5 +47,12 @@ extern union block sector[100];
 int  checkLayout(void);                         /* 1 if sizes are correct, else 0 */
 void initDir(int s, int back, int frwd);        /* initialize a directory sector  */
 void initRoot(void);                            /* initialize sector[0]           */
+
+/* ---- freelist.c ---- */
+void buildList(void);       /* create list of sectors 1..99               */
+int  Remove(void);          /* take one free sector; -1 if none are left  */
+int  Insert(int s);         /* release a sector; 1 on success, 0 if bad   */
+int  freeCount(void);       /* number of free sectors                     */
+void destroyList(void);     /* free every node                            */
 
 #endif /* FS_H */
