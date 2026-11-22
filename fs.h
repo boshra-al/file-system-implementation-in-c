@@ -66,4 +66,13 @@ int  Insert(int s);         /* release a sector; 1 on success, 0 if bad   */
 int  freeCount(void);       /* number of free sectors                     */
 void destroyList(void);     /* free every node                            */
 
+/* ---- io.c ---- */
+void initOpenFile(void);
+int  fileIsOpen(const char *name);
+void cmdOpen(const char *modeStr, const char *name);
+void cmdClose(void);
+void cmdSeek(const char *posStr);
+void cmdRead(const char *nStr);
+void cmdWrite(const char *nStr, const char *data);
+
 #endif /* FS_H */
