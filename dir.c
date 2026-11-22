@@ -253,7 +253,7 @@ void cmdDelete(const char *name)
     int  link = sector[s].directory.dir[x].link;
 
     if (type == 'U') {
-        if (fileIsOpen(name)) {
+        if (fileIsOpen(s, x)) {
             printf("Error: '%s' is open; CLOSE it first\n", name);
             return;
         }

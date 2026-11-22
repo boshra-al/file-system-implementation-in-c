@@ -82,9 +82,9 @@ static int needOpen(void)
     return 1;
 }
 
-int fileIsOpen(const char *name)
+int fileIsOpen(int sec, int idx)
 {
-    return of.isOpen && strcmp(of.name, name) == 0;
+    return of.isOpen && of.dirSec == sec && of.dirIdx == idx;
 }
 
 /* OPEN I/O/U name : open a user file in the current directory. */

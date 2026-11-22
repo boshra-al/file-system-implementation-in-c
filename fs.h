@@ -69,7 +69,7 @@ void destroyList(void);     /* free every node                            */
 
 /* ---- io.c ---- */
 void initOpenFile(void);
-int  fileIsOpen(const char *name);
+int  fileIsOpen(int sec, int idx);
 void cmdOpen(const char *modeStr, const char *name);
 void cmdClose(void);
 void cmdSeek(const char *posStr);
