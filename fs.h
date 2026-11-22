@@ -55,6 +55,7 @@ int  findFreeSlot(int dirStart, int *sec, int *idx);
 int  getSlot(int dirStart, int *sec, int *idx); /* extends the directory if full  */
 
 void cmdCreate(const char *typeStr, const char *name);
+void cmdDelete(const char *name);
 void cmdDir(void);
 void cmdCd(const char *name);
 void cmdRoot(void);
@@ -65,5 +66,14 @@ int  Remove(void);          /* take one free sector; -1 if none are left  */
 int  Insert(int s);         /* release a sector; 1 on success, 0 if bad   */
 int  freeCount(void);       /* number of free sectors                     */
 void destroyList(void);     /* free every node                            */
+
+/* ---- io.c ---- */
+void initOpenFile(void);
+int  fileIsOpen(const char *name);
+void cmdOpen(const char *modeStr, const char *name);
+void cmdClose(void);
+void cmdSeek(const char *posStr);
+void cmdRead(const char *nStr);
+void cmdWrite(const char *nStr, const char *data);
 
 #endif /* FS_H */

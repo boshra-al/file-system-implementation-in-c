@@ -192,6 +192,97 @@ void cmdCreate(const char *typeStr, const char *name)
     printf("Created %s '%s'\n", type == 'D' ? "directory" : "file", name);
 }
 
+/* 1 if no sector in the directory chain starting at dirStart has an entry. */
+static int dirIsEmpty(int dirStart)
+{
+    for (int s = dirStart; s > 0; s = sector[s].directory.frwd)
+        if (sector[s].directory.free != DIR_ENTRIES) return 0;
+    return 1;
+}
+
+/* Return every sector of a file's data chain to the free list. */
+static void releaseDataChain(int s)
+{
+    while (s != 0) {
+        int next = sector[s].data.frwdf;
+        Insert(s);
+        s = next;
+    }
+}
+
+/* Return every sector of a directory chain to the free list. */
+static void releaseDirChain(int s)
+{
+    while (s > 0) {
+        int next = sector[s].directory.frwd;
+        Insert(s);
+        s = next;
+    }
+}
+
+/*
+ * An extension sector (not the first sector of its directory) that has
+ * become completely empty is unlinked from the chain and freed.
+ */
+static void shrinkDir(int s)
+{
+    if (s == curDir || sector[s].directory.free != DIR_ENTRIES) return;
+
+    int back = sector[s].directory.back;
+    int frwd = sector[s].directory.frwd;
+    sector[back].directory.frwd = frwd;
+    if (frwd > 0) sector[frwd].directory.back = back;
+    Insert(s);
+}
+
+/*
+ * DELETE name: remove a regular file or an empty subdirectory from the
+ * current directory.  All of its sectors go back on the free list.
+ */
+void cmdDelete(const char *name)
+{
+    if (!validName(name)) return;
+
+    int s, x;
+    if (!findEntry(curDir, name, &s, &x)) {
+        printf("Error: '%s' not found\n", name);
+        return;
+    }
+
+    char type = sector[s].directory.dir[x].type;
+    int  link = sector[s].directory.dir[x].link;
+
+    if (type == 'U') {
+        if (fileIsOpen(name)) {
+            printf("Error: '%s' is open; CLOSE it first\n", name);
+            return;
+        }
+        releaseDataChain(link);
+    } else {
+        /* The root is never an entry of any directory, so link > 0 here. */
+        if (link <= 0) {
+            printf("Error: the root directory cannot be deleted\n");
+            return;
+        }
+        if (!dirIsEmpty(link)) {
+            printf("Error: directory '%s' is not empty\n", name);
+            return;
+        }
+        releaseDirChain(link);
+    }
+
+    sector[s].directory.dir[x].type = 'F';
+    memset(sector[s].directory.dir[x].name, 0,
+           sizeof sector[s].directory.dir[x].name);
+    sector[s].directory.dir[x].link = 0;
+    sector[s].directory.dir[x].size = 0;
+    sector[s].directory.free++;
+
+    shrinkDir(s);
+
+    printf("Deleted %s '%s'\n", type == 'D' ? "directory" : "file", name);
+}
+
 /* DIR: list every occupied entry in all sectors of the current directory. */
 void cmdDir(void)
 {
