@@ -13,6 +13,7 @@ static void printHelp(void)
 {
     printf("Commands:\n"
            "  CREATE U|D name   create a file (U) or directory (D)\n"
+           "  DELETE name       delete a file or an empty directory\n"
            "  DIR               list the current directory\n"
            "  CD name           change to a subdirectory\n"
            "  ROOT              return to the root directory\n"
@@ -70,6 +71,9 @@ int main(void)
         if (strcmp(cmd, "CREATE") == 0) {
             if (nt < 3) printf("Usage: CREATE U|D name\n");
             else        cmdCreate(tok[1], tok[2]);
+        } else if (strcmp(cmd, "DELETE") == 0) {
+            if (nt < 2) printf("Usage: DELETE name\n");
+            else        cmdDelete(tok[1]);
         } else if (strcmp(cmd, "DIR") == 0) {
             cmdDir();
         } else if (strcmp(cmd, "CD") == 0) {

@@ -55,6 +55,7 @@ int  findFreeSlot(int dirStart, int *sec, int *idx);
 int  getSlot(int dirStart, int *sec, int *idx); /* extends the directory if full  */
 
 void cmdCreate(const char *typeStr, const char *name);
+void cmdDelete(const char *name);
 void cmdDir(void);
 void cmdCd(const char *name);
 void cmdRoot(void);
